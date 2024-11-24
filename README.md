@@ -49,11 +49,11 @@ ota:
   password: "ef6e1fd2688b16bda2ac563f214e8f16"
 
 wifi:
-  ssid: "ShangHome"
-  password: "61389038"
+  ssid: "Your_SSID"
+  password: "Your_Passwd"
   ap:
     ssid: "Hwater Fallback Hotspot"
-    password: "61389038"
+    password: "You set Passwd"
   manual_ip:
     static_ip: "192.168.31.84"
     gateway: "192.168.31.1"
