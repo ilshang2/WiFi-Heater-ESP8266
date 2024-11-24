@@ -1,6 +1,4 @@
 # WiFi-Heater-ESP8266
-"A smart water heater control system using ESP8266 and WiFi to enable remote monitoring and control of water temperature."
-# WiFi-Heater-ESP8266
 
 ## 專案概述
 WiFi-Heater-ESP8266 是一個基於 ESP8266 WiFi 模組的智能熱水器控制系統，旨在通過物聯網技術提升熱水器的便捷性和能源效率。此專案允許用戶通過 WiFi 遠端控制水溫並監測熱水器的運行狀況，實現智能化家居體驗。
@@ -30,7 +28,81 @@ WiFi-Heater-ESP8266 是一個基於 ESP8266 WiFi 模組的智能熱水器控制�
    - 安裝 ESP8266 開發板擴展包，配置相關的驅動。
 2. **程式碼上傳**：
    - 編寫程式碼以處理 WiFi 連接、HTTP 請求，並實現控制邏輯。
-   - 將程式碼上傳至 ESP8266 開發板。
+   - 以下是 `hwater.yaml` 的程式碼內容，供您參考：
+
+```yaml
+esphome:
+  name: hwater
+  friendly_name: HWater
+
+esp8266:
+  board: esp01_1m
+
+logger:
+
+api:
+  encryption:
+    key: "7uoAmbYwHvWNQA3xCXsXaJWoQiAf3OJQb+6reWqCU8o="
+
+ota:
+  platform: esphome
+  password: "ef6e1fd2688b16bda2ac563f214e8f16"
+
+wifi:
+  ssid: "ShangHome"
+  password: "61389038"
+  ap:
+    ssid: "Hwater Fallback Hotspot"
+    password: "61389038"
+  manual_ip:
+    static_ip: "192.168.31.84"
+    gateway: "192.168.31.1"
+    subnet: "255.255.255.0"
+    dns1: "192.168.31.1"
+
+web_server:
+  port: 80
+
+globals:
+  - id: heater_timer_remaining
+    type: int
+    restore_value: False
+    initial_value: '0'
+
+switch:
+  - platform: gpio
+    pin: GPIO2
+    name: "Water Heater Switch"
+    id: heater
+    restore_mode: RESTORE_DEFAULT_OFF
+  - platform: template
+    name: "04_Enable Timer Mode"
+    id: timer_mode
+    optimistic: True
+    turn_on_action:
+      - lambda: |
+          ESP_LOGD("main", "Timer Mode set to: ON");
+          auto now = id(sntp_time).now();
+          if (now.is_valid()) {
+            int start_hour = 7;
+            int end_hour = 23;
+            float current_temp = id(dht11_temperature).state;
+            float target_temp = id(target_temperature).state;
+            bool in_timer_range = (now.hour >= start_hour && now.hour < end_hour);
+            if (in_timer_range && current_temp < target_temp) {
+              id(heater).turn_on();
+              ESP_LOGD("main", "Timer mode activated immediately: Heater ON, current temp: %f, target temp: %f", current_temp, target_temp);
+            }
+          }
+    turn_off_action:
+      - lambda: |
+          id(timer_mode).publish_state(false);
+          ESP_LOGD("main", "Timer Mode set to: OFF");
+          id(heater).turn_off();
+
+# 更多程式碼...（省略部分內容）
+```
+
 3. **WiFi 設定**：
    - 配置 WiFi 名稱和密碼，將 ESP8266 連接到本地網絡。
 
@@ -45,7 +117,6 @@ WiFi-Heater-ESP8266 是一個基於 ESP8266 WiFi 模組的智能熱水器控制�
 下面是一些系統設置的範例圖片，幫助您了解如何進行硬體連接和軟體配置：
 
 ![image](https://github.com/user-attachments/assets/4db3814d-b06a-4ab1-8606-4b7d558d3727)
-
 
 ## 版本歷史
 - **v1.0**: 初始版本，實現 WiFi 連接與基本熱水器開關功能。
