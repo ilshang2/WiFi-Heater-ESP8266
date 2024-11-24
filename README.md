@@ -18,9 +18,11 @@ WiFi-Heater-ESP8266 是一個基於 ESP8266 WiFi 模組的智能熱水器控制�
    - 溫度感應器（如 DS18B20）
    - 繼電器模組，用於控制熱水器的電源開關
    - 熱水器
+   - 固態繼電器（SSR）
 2. **連接 ESP8266**：
-   - 將溫度感應器連接到 ESP8266，讀取水溫數據。
-   - 將繼電器連接到 ESP8266，並將熱水器的電源通過繼電器控制。
+   - **溫度感應器**：將 DS18B20 溫度感應器的數據線連接到 **GPIO4 (D2)**，電源線連接到 3.3V 和 GND。
+   - **固態繼電器 (SSR)**：將 SSR 的控制端連接到 **GPIO5 (D1)**，用來控制熱水器的電源。
+   - **繼電器模組**：將繼電器模組連接到 ESP8266，並將熱水器的電源通過繼電器控制。
 
 ### 軟體設置
 1. **開發環境**：
@@ -42,23 +44,23 @@ logger:
 
 api:
   encryption:
-    key: "your_key"
+    key: "7uoAmbYwHvWNQA3xCXsXaJWoQiAf3OJQb+6reWqCU8o="
 
 ota:
   platform: esphome
-  password: "your passwd"
+  password: "ef6e1fd2688b16bda2ac563f214e8f16"
 
 wifi:
-  ssid: "Your_SSID"
-  password: "Your_Passwd"
+  ssid: "<YOUR_WIFI_SSID>"
+  password: "<YOUR_WIFI_PASSWORD>"
   ap:
-    ssid: "Hwater Fallback Hotspot"
-    password: "You set Passwd"
+    ssid: "<FALLBACK_HOTSPOT_SSID>"
+    password: "<FALLBACK_HOTSPOT_PASSWORD>"
   manual_ip:
-    static_ip: "192.168.31.84"
-    gateway: "192.168.31.1"
-    subnet: "255.255.255.0"
-    dns1: "192.168.31.1"
+    static_ip: "<YOUR_STATIC_IP>"
+    gateway: "<YOUR_GATEWAY>"
+    subnet: "<YOUR_SUBNET>"
+    dns1: "<YOUR_DNS>"
 
 web_server:
   port: 80
@@ -74,6 +76,32 @@ switch:
     pin: GPIO2
     name: "Water Heater Switch"
     id: heater
+    restore_mode: RESTORE_DEFAULT_OFF
+  - platform: template
+    name: "04_Enable Timer Mode"
+    id: timer_mode
+    optimistic: True
+    turn_on_action:
+      - lambda: |
+          ESP_LOGD("main", "Timer Mode set to: ON");
+          auto now = id(sntp_time).now();
+          if (now.is_valid()) {
+            int start_hour = 7;
+            int end_hour = 23;
+            float current_temp = id(dht11_temperature).state;
+            float target_temp = id(target_temperature).state;
+            bool in_timer_range = (now.hour >= start_hour && now.hour < end_hour);
+            if (in_timer_range && current_temp < target_temp) {
+              id(heater).turn_on();
+              ESP_LOGD("main", "Timer mode activated immediately: Heater ON, current temp: %f, target temp: %f", current_temp, target_temp);
+            }
+          }
+    turn_off_action:
+      - lambda: |
+          id(timer_mode).publish_state(false);
+          ESP_LOGD("main", "Timer Mode set to: OFF");
+          id(heater).turn_off();
+
 # 更多程式碼...（省略部分內容）
 ```
 
@@ -98,4 +126,3 @@ switch:
 
 ## 許可證
 此專案基於 MIT 許可證開源，您可以自由使用、修改和分發，但需要保留原作者的版權聲明。
-
