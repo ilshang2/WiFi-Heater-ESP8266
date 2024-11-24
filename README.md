@@ -22,13 +22,15 @@ WiFi-Heater-ESP8266 是一個基於 ESP8266 WiFi 模組的智能熱水器控制�
 2. **連接 ESP8266**：
    - **溫度感應器**：將 DS18B20 溫度感應器的數據線連接到 **GPIO4 (D2)**，電源線連接到 3.3V 和 GND。
    - **固態繼電器 (SSR)**：將 SSR 的控制端連接到 **GPIO5 (D1)**，用來控制熱水器的電源。
-   - **繼電器模組**：將繼電器模組連接到 ESP8266，並將熱水器的電源通過繼電器控制。
 
 ### 軟體設置
 1. **開發環境**：
    - 使用 Arduino IDE 或 PlatformIO 來編寫 ESP8266 的控制程式碼。
    - 安裝 ESP8266 開發板擴展包，配置相關的驅動。
-2. **程式碼上傳**：
+2. **ESPHome 編譯與設置**：
+   - 可以通過 Home Assistant 的 ESPHome 插件進行編譯和安裝。只需在 Home Assistant 的附加組件商店中搜索並安裝 ESPHome，之後即可在本地網絡內輕鬆地添加和管理您的設備。
+   - 您也可以使用線上 Web 工具來安裝和設置 ESPHome，請訪問以下連結以便快速進行設置：[ESPHome Web 安裝工具](https://web.esphome.io/?dashboard_install)
+3. **程式碼上傳**：
    - 編寫程式碼以處理 WiFi 連接、HTTP 請求，並實現控制邏輯。
    - 以下是 `hwater.yaml` 的程式碼內容，供您參考：
 
@@ -105,7 +107,7 @@ switch:
 # 更多程式碼...（省略部分內容）
 ```
 
-3. **WiFi 設定**：
+4. **WiFi 設定**：
    - 配置 WiFi 名稱和密碼，將 ESP8266 連接到本地網絡。
 
 ### 操作系統
@@ -117,7 +119,6 @@ switch:
 
 ## 範例圖片與圖表
 下面是一些系統設置的範例圖片，幫助您了解如何進行硬體連接和軟體配置：
-
 ![image](https://github.com/user-attachments/assets/4db3814d-b06a-4ab1-8606-4b7d558d3727)
 
 ## 版本歷史
