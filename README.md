@@ -42,11 +42,11 @@ logger:
 
 api:
   encryption:
-    key: "7uoAmbYwHvWNQA3xCXsXaJWoQiAf3OJQb+6reWqCU8o="
+    key: "your_key"
 
 ota:
   platform: esphome
-  password: "ef6e1fd2688b16bda2ac563f214e8f16"
+  password: "your passwd"
 
 wifi:
   ssid: "Your_SSID"
@@ -74,32 +74,6 @@ switch:
     pin: GPIO2
     name: "Water Heater Switch"
     id: heater
-    restore_mode: RESTORE_DEFAULT_OFF
-  - platform: template
-    name: "04_Enable Timer Mode"
-    id: timer_mode
-    optimistic: True
-    turn_on_action:
-      - lambda: |
-          ESP_LOGD("main", "Timer Mode set to: ON");
-          auto now = id(sntp_time).now();
-          if (now.is_valid()) {
-            int start_hour = 7;
-            int end_hour = 23;
-            float current_temp = id(dht11_temperature).state;
-            float target_temp = id(target_temperature).state;
-            bool in_timer_range = (now.hour >= start_hour && now.hour < end_hour);
-            if (in_timer_range && current_temp < target_temp) {
-              id(heater).turn_on();
-              ESP_LOGD("main", "Timer mode activated immediately: Heater ON, current temp: %f, target temp: %f", current_temp, target_temp);
-            }
-          }
-    turn_off_action:
-      - lambda: |
-          id(timer_mode).publish_state(false);
-          ESP_LOGD("main", "Timer Mode set to: OFF");
-          id(heater).turn_off();
-
 # 更多程式碼...（省略部分內容）
 ```
 
