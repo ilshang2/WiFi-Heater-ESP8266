@@ -1,264 +1,351 @@
 esphome:
-  name: hwater
-  friendly_name: HWater
-  # 設置設備名稱和友好名稱
+  name: hwater  # 設備名稱
+  friendly_name: HWater  # 友好名稱，顯示在界面上
 
+# 設定 ESP8266 的硬體板型
 esp8266:
-  board: esp01_1m
-  # 設置使用的 ESP8266 開發板型號
+  board: esp01_1m  # 使用 ESP-01 模組，1MB Flash
 
+# 設定日誌記錄級別
 logger:
-  # 啟用日誌功能，用於調試和信息記錄
+  level: INFO  # 設定為 INFO，平衡詳細程度與資源消耗
 
+# 設定 ESPHome API 及加密金鑰
 api:
   encryption:
-    key: "7uoAmbYwHvWNQA3xCXsXaJWoQiAf3OJQb+6reWqCU8o="
-  # 設置 API 並啟用加密，確保設備通信的安全性
+    key: "7uoAmbYwHvWNQA3xCXsXaJWoQiAf3OJQb+6reWqCU8o="  # API 加密金鑰
 
+# 設定 OTA 更新及密碼
 ota:
   platform: esphome
-  password: "ef6e1fd2688b16bda2ac563f214e8f16"
-  # 啟用 OTA（Over-The-Air）更新功能，並設置更新的密碼
+  password: "ef6e1fd2688b16bda2ac563f214e8f16"  # OTA 更新密碼
 
+# 設定 Wi-Fi 連接資訊
 wifi:
-  ssid: "ShangHome"
-  password: "61389038"
-  # 設置連接的 WiFi 網絡名稱和密碼
+  ssid: "ShangHome"  # Wi-Fi 名稱
+  password: "61389038"  # Wi-Fi 密碼
 
+  # 設定 AP 模式的 SSID 和密碼，以防主要網絡無法連接
   ap:
-    ssid: "Hwater Fallback Hotspot"
-    password: "61389038"
-    # 設置設備的 AP 模式（熱點模式）以備用，當無法連接主 WiFi 時使用
+    ssid: "HWater Fallback Hotspot"  # AP 模式的 SSID
+    password: "12345678"  # AP 模式的密碼
 
-  manual_ip:
-    static_ip: 192.168.31.84
-    gateway: 192.168.31.1
-    subnet: 255.255.255.0
-    dns1: 192.168.31.1
-    # 手動配置 IP 地址，避免動態分配帶來的不穩定性
-
+# 設定內建的 Web Server
 web_server:
-  port: 80
-  # 啟用 Web 服務器功能，方便通過網頁控制設備
+  port: 80  # 設定 Web Server 使用的端口
+  # 移除自定義的 HTML、CSS 和 JavaScript 文件
+  # 使用 ESPHome 的默認網頁界面
 
+# 定義全局變數
 globals:
-  - id: heater_timer_remaining
+  - id: heater_timer_remaining  # 加熱器剩餘時間
     type: int
-    restore_value: no
-    initial_value: '0'
-    # 設置一個全局變量來追蹤手動加熱倒計時的剩餘時間
+    restore_value: yes  # 重新啟動後恢復值
+    initial_value: '0'  # 初始值為 0
+  - id: TEMPERATURE_HYSTERESIS  # 溫度滯後值
+    type: float
+    initial_value: '2.0'  # 初始值為 2.0°C
 
-switch:
-  # GPIO 控制開關配置
-  - platform: gpio
-    pin: GPIO2
-    name: "Water Heater Switch"
-    id: heater
-    restore_mode: RESTORE_DEFAULT_OFF
-    # GPIO 開關，用於控制加熱器，初始狀態為關閉
-
-  # 定時模式開關，控制加熱器的定時加熱功能
-  - platform: template
-    name: "04_Enable Timer Mode"
-    id: timer_mode
-    optimistic: true
-    turn_on_action:
-      - lambda: |-
-          ESP_LOGD("main", "Timer Mode set to: ON");
-          auto now = id(sntp_time).now();
-          if (now.is_valid()) {
-            int start_hour = 7;
-            int end_hour = 23;
-            float current_temp = id(dht11_temperature).state;
-            float target_temp = id(target_temperature).state;
-            bool in_timer_range = (now.hour >= start_hour && now.hour < end_hour);
-            if (in_timer_range && current_temp < target_temp) {
-              id(heater).turn_on();
-              ESP_LOGD("main", "Timer mode activated immediately: Heater ON, current temp: %f, target temp: %f", current_temp, target_temp);
-            }
-          }
-    turn_off_action:
-      - lambda: |-
-          id(timer_mode).publish_state(false);
-          ESP_LOGD("main", "Timer Mode set to: OFF");
-          id(heater).turn_off();
-
-  # 手動加熱模式開關，用於手動觸發加熱器
-  - platform: template
-    name: "07_Manual Heater Trigger"
-    id: manual_heater_trigger
-    optimistic: true
-    turn_on_action:
-      - lambda: |-
-          ESP_LOGD("main", "Manual Heater Trigger ON: Heater will stay ON for 1 hour");
-          id(heater).turn_on();
-          id(manual_heater_trigger).publish_state(true);
-      - script.execute: manual_heater_timer
-    turn_off_action:
-      - lambda: |-
-          ESP_LOGD("main", "Manual Heater Trigger OFF: Turning off heater");
-          id(heater).turn_off();
-          id(manual_heater_trigger).publish_state(false);
-      - text_sensor.template.publish:
-          id: remaining_heating_time_display
-          state: "00:00"
-          # 更新倒計時顯示為 00:00 當手動加熱模式關閉時
-
-sensor:
-  # 溫濕度感測器（DHT11）配置，連接於 GPIO0
-  - platform: dht
-    pin: GPIO0
-    model: DHT11
-    temperature:
-      name: "02_Water Heater Temperature (DHT11)"
-      id: dht11_temperature
-      accuracy_decimals: 1
-    humidity:
-      name: "03_Water Heater Humidity (DHT11)"
-      id: dht11_humidity
-      accuracy_decimals: 1
-    update_interval: 60s
-    # 設置 DHT11 溫濕度感測器，並每 60 秒更新一次數據
-
-number:
-  # 設定目標水溫
-  - platform: template
-    name: "01_Target Water Temperature"
-    id: target_temperature
-    icon: "mdi:thermometer"
-    unit_of_measurement: "°C"
-    min_value: 20
-    max_value: 60
-    step: 1
-    set_action:
-      - lambda: |-
-          if (id(target_temperature).state != x) {
-            id(target_temperature).publish_state(x);
-            ESP_LOGD("main", "Target Temperature set to: %f °C", x);
-          }
-    # 配置一個數字輸入，用於設置目標水溫，範圍在 20 到 60°C 之間
-
-  # 設定定時器的啟動時間
-  - platform: template
-    name: "05_Timer Start Hour"
-    id: timer_start_hour
-    icon: "mdi:clock-start"
-    unit_of_measurement: "h"
-    min_value: 0
-    max_value: 23
-    step: 1
-    set_action:
-      - lambda: |-
-          if (id(timer_start_hour).state != x) {
-            id(timer_start_hour).publish_state(x);
-            ESP_LOGD("main", "Timer Start Hour set to: %f", x);
-          }
-    # 配置一個數字輸入，用於設置定時器的啟動時間，範圍在 0 到 23 小時之間
-
-  # 設定定時器的關閉時間
-  - platform: template
-    name: "06_Timer End Hour"
-    id: timer_end_hour
-    icon: "mdi:clock-end"
-    unit_of_measurement: "h"
-    min_value: 0
-    max_value: 23
-    step: 1
-    set_action:
-      - lambda: |-
-          if (id(timer_end_hour).state != x) {
-            id(timer_end_hour).publish_state(x);
-            ESP_LOGD("main", "Timer End Hour set to: %f", x);
-          }
-    # 配置一個數字輸入，用於設置定時器的關閉時間，範圍在 0 到 23 小時之間
-
+# 設定時間平台，使用 SNTP 來獲取實時時間
 time:
   - platform: sntp
-    id: sntp_time
-    timezone: "Asia/Taipei"
+    id: sntp_time  # 時間 ID
+    timezone: "Asia/Taipei"  # 設定時區為台北
     servers:
-      - time.google.com
-      - pool.ntp.org
-    update_interval: 30s
-    # 使用 SNTP 進行時間同步，設置時區為台北，並嘗試不同的 NTP 伺服器，30 秒間隔更新        # 使用 SNTP 進行時間同步，設置時區為台北
+      - time.google.com  # 使用 Google 的時間伺服器
+      - pool.ntp.org  # 使用 NTP 池的時間伺服器
 
-text_sensor:
-  # 顯示當前時間的文字感測器
+# 定義所有感測器
+sensor:
+  # DHT11 感測器，用於監測環境溫度和濕度，連接到 GPIO4
+  - platform: dht
+    pin: GPIO4  # 連接引腳為 GPIO4
+    temperature:
+      name: "11_Environment Temperature"  # 環境溫度名稱
+      id: env_temperature  # 感測器 ID
+      unit_of_measurement: "°C"  # 單位為攝氏度
+      accuracy_decimals: 1  # 精確到小數點後一位
+    humidity:
+      name: "12_Environment Humidity"  # 環境濕度名稱
+      id: env_humidity  # 感測器 ID
+      unit_of_measurement: "%"  # 單位為百分比
+      accuracy_decimals: 1  # 精確到小數點後一位
+    model: DHT11  # 使用 DHT11 模型
+    update_interval: 10s  # 每 10 秒更新一次
+
+  # ADC 感測器，用於監測水溫的原始電壓值，連接到 A0
+  - platform: adc
+    name: "08_Raw ADC Voltage"  # 原始 ADC 電壓名稱
+    id: analog_voltage  # 感測器 ID
+    pin: A0  # 連接引腳為 A0
+    unit_of_measurement: "V"  # 單位為伏特
+    accuracy_decimals: 3  # 精確到小數點後三位
+    update_interval: 30s  # 每 30 秒更新一次，以減少日誌頻率
+
+  # 校準後的水溫感測器
   - platform: template
-    name: "08_Current Time"
-    id: current_time_display
-    icon: "mdi:clock"
-    update_interval: 60s
+    name: "01_Water Temperature"  # 水溫名稱
+    id: calibrated_temperature  # 感測器 ID
+    unit_of_measurement: "°C"  # 單位為攝氏度
+    accuracy_decimals: 1  # 精確到小數點後一位
     lambda: |-
-      auto now = id(sntp_time).now();
+      float voltage = id(analog_voltage).state;  // 讀取 ADC 電壓值
+      // 使用多項式公式校準電壓轉換為溫度
+      float temperature = 76.266 * voltage * voltage + 13.509 * voltage - 8.938;
+      // 限制溫度範圍在 -40°C 到 125°C 之間
+      return (temperature < -40) ? -40 : ((temperature > 125) ? 125 : temperature);
+
+# 定義文字感測器，用於顯示剩餘加熱時間、當前時間和加熱器狀態
+text_sensor:
+  - platform: template
+    name: "07_Remaining Heating Time"  # 剩餘加熱時間名稱
+    id: heating_time_display  # 感測器 ID
+    update_interval: 10s  # 每 10 秒更新一次，以減少日誌頻率
+    lambda: |-
+      if (id(heater_timer_remaining) > 0) {
+        int minutes = id(heater_timer_remaining) / 60;  // 計算剩餘分鐘數
+        int seconds = id(heater_timer_remaining) % 60;  // 計算剩餘秒數
+        char str[12];
+        snprintf(str, sizeof(str), "%02d:%02d", minutes, seconds);  // 格式化為 MM:SS
+        return {str};  // 返回格式化的剩餘時間
+      }
+      return {"00:00"};  // 如果沒有剩餘時間，顯示 00:00
+
+  - platform: template
+    name: "10_Current Time"  # 當前時間名稱
+    id: current_time_display  # 感測器 ID
+    update_interval: 60s  # 每 60 秒更新一次
+    lambda: |-
+      auto now = id(sntp_time).now();  // 獲取當前時間
       if (now.is_valid()) {
         char str[16];
-        snprintf(str, sizeof(str), "%02d:%02d:%02d", now.hour, now.minute, now.second);
-        return {str};
-      } else {
-        return {"Time not valid"};
+        snprintf(str, sizeof(str), "%02d:%02d:%02d", now.hour, now.minute, now.second);  // 格式化為 HH:MM:SS
+        return {str};  // 返回格式化的當前時間
       }
-    # 設置一個文字感測器，用於顯示當前時間，每 60 秒更新一次
+      return {"Invalid Time"};  // 如果時間無效，顯示 Invalid Time
 
-  # 顯示手動加熱倒計時的文字感測器
   - platform: template
-    name: "09_Remaining Manual Heating Time"
-    id: remaining_heating_time_display
-    icon: "mdi:timer-outline"
-    update_interval: 10s
+    name: "09_Water Heater Status"  # 加熱器狀態名稱
+    id: heater_status_display  # 感測器 ID
+    update_interval: 10s  # 每 10 秒更新一次
     lambda: |-
-      int seconds_remaining = id(heater_timer_remaining);
-      if (seconds_remaining > 0) {
-        int minutes = seconds_remaining / 60;
-        int seconds = seconds_remaining % 60;
-        char str[16];
-        snprintf(str, sizeof(str), "%02d:%02d", minutes, seconds);
-        return {str};
+      if (id(heater_switch).state) {  // 檢查加熱器是否開啟
+        return {"ON"};  // 如果開啟，顯示 ON
       } else {
-        return {"00:00"};
+        return {"OFF"};  // 如果關閉，顯示 OFF
       }
-    # 設置一個文字感測器，用於顯示手動加熱模式的倒計時，更新頻率為 10 秒
 
-interval:
-  - interval: 1s
-    then:
+# 定義開關，包括加熱器開關、定時模式開關、自動目標溫度調整開關和手動加熱觸發開關
+switch:
+  # 加熱器開關，使用 GPIO14 控制，設為內部開關，不允許從 UI 手動控制
+  - platform: gpio
+    name: "09_Water Heater"  # 加熱器名稱
+    pin: GPIO14  # 連接引腳為 GPIO14
+    id: heater_switch  # 開關 ID
+    restore_mode: RESTORE_DEFAULT_OFF  # 恢復模式為默認關閉
+    internal: true  # 使加熱器開關內部化，防止從 UI 手動控制
+
+  # 定時模式開關，用於啟用或禁用定時模式
+  - platform: template
+    name: "03_Enable Timer Mode"  # 定時模式名稱
+    id: timer_mode_switch  # 開關 ID
+    turn_on_action:
+      - script.execute: enable_timer_mode  # 執行啟用定時模式的腳本
       - lambda: |-
-          if (id(heater_timer_remaining) > 0) {
-            id(heater_timer_remaining)--;
+          id(timer_mode_switch).publish_state(true);  // 發佈定時模式為啟用狀態
+    turn_off_action:
+      - script.execute: disable_timer_mode  # 執行禁用定時模式的腳本
+      - lambda: |-
+          id(timer_mode_switch).publish_state(false);  // 發佈定時模式為禁用狀態
+      - switch.turn_off: heater_switch  # 關閉加熱器
+      - logger.log: "Timer mode disabled, Water Heater turned off."  # 記錄日誌
+
+  # 手動加熱觸發開關，用於手動啟動或停止加熱
+  - platform: template
+    name: "06_Manual Heater Trigger"  # 手動加熱觸發名稱
+    id: manual_heater_switch  # 開關 ID
+    turn_on_action:
+      - script.execute: manual_heating_start  # 執行手動加熱開始的腳本
+      - lambda: |-
+          id(manual_heater_switch).publish_state(true);  // 發佈手動加熱為啟用狀態
+    turn_off_action:
+      - script.execute: manual_heating_stop  # 執行手動加熱停止的腳本
+      - lambda: |-
+          id(manual_heater_switch).publish_state(false);  // 發佈手動加熱為禁用狀態
+      - switch.turn_off: heater_switch  # 關閉加熱器
+      - globals.set:
+          id: heater_timer_remaining  # 設定剩餘加熱時間為 0
+          value: '0'
+      - logger.log: "Manual heater trigger turned off, Water Heater turned off, and Remaining Heating Time reset."  # 記錄日誌
+
+  # 自動目標溫度調整開關，用於啟用或禁用自動調整目標溫度
+  - platform: template
+    name: "00_Auto Target Temperature Adjustment"  # 自動目標溫度調整名稱
+    id: auto_target_temp_adjust  # 開關 ID
+    icon: "mdi:autorenew"  # 設定圖示
+    optimistic: true  # 樂觀模式，假設操作成功
+    turn_on_action:
+      - logger.log: "Automatic Target Temperature Adjustment enabled."  # 記錄日誌
+    turn_off_action:
+      - logger.log: "Automatic Target Temperature Adjustment disabled."  # 記錄日誌
+
+# 定義數字類型的控制項，用於設定目標水溫和定時開始/結束時間
+number:
+  # 目標水溫控制
+  - platform: template
+    name: "02_Target Water Temperature"  # 目標水溫名稱
+    id: target_temperature  # 控制項 ID
+    unit_of_measurement: "°C"  # 單位為攝氏度
+    icon: "mdi:thermometer"  # 設定圖示
+    min_value: 15  # 最小值為 15°C
+    max_value: 60  # 最大值為 60°C
+    step: 1  # 步進值為 1°C
+    initial_value: 50  # 初始值為 50°C
+    set_action:
+      - lambda: |-
+          ESP_LOGD("main", "Target temperature set to %.1f °C", x);  // 記錄目標溫度變更
+          id(target_temperature).publish_state(x);  // 發佈新的目標溫度
+          // 評估加熱器狀態後改變目標溫度，應用滯後
+          float target = x;  // 目標溫度
+          float hysteresis = id(TEMPERATURE_HYSTERESIS);  // 取得滯後值
+          if (id(calibrated_temperature).state < (target - hysteresis)) {  // 如果當前水溫低於目標溫度減去滯後值
+            id(heater_switch).turn_on();  // 開啟加熱器
+          } else if (id(calibrated_temperature).state > (target + hysteresis)) {  // 如果當前水溫高於目標溫度加上滯後值
+            id(heater_switch).turn_off();  // 關閉加熱器
           }
 
-  - interval: 10s
+  # 定時開始時間控制
+  - platform: template
+    name: "04_Timer Start Hour"  # 定時開始時間名稱
+    id: timer_start_hour  # 控制項 ID
+    unit_of_measurement: "h"  # 單位為小時
+    icon: "mdi:clock-start"  # 設定圖示
+    min_value: 0  # 最小值為 0 小時
+    max_value: 23  # 最大值為 23 小時
+    step: 1  # 步進值為 1 小時
+    initial_value: 16  # 初始值改為 16 點
+    set_action:
+      - lambda: |-
+          ESP_LOGD("main", "Timer start hour set to %.0f", x);  // 記錄定時開始時間變更
+          id(timer_start_hour).publish_state(x);  // 發佈新的定時開始時間
+
+  # 定時結束時間控制
+  - platform: template
+    name: "05_Timer End Hour"  # 定時結束時間名稱
+    id: timer_end_hour  # 控制項 ID
+    unit_of_measurement: "h"  # 單位為小時
+    icon: "mdi:clock-end"  # 設定圖示
+    min_value: 0  # 最小值為 0 小時
+    max_value: 23  # 最大值為 23 小時
+    step: 1  # 步進值為 1 小時
+    initial_value: 22  # 初始值改為 22 點
+    set_action:
+      - lambda: |-
+          ESP_LOGD("main", "Timer end hour set to %.0f", x);  // 記錄定時結束時間變更
+          id(timer_end_hour).publish_state(x);  // 發佈新的定時結束時間
+
+# 定義腳本，用於啟用/禁用定時模式以及手動加熱控制
+script:
+  # 啟用定時模式的腳本
+  - id: enable_timer_mode
+    then:
+      - logger.log: "Timer mode enabled."  # 記錄日誌
+
+  # 禁用定時模式的腳本
+  - id: disable_timer_mode
+    then:
+      - logger.log: "Timer mode disabled."  # 記錄日誌
+
+  # 手動加熱開始的腳本
+  - id: manual_heating_start
+    then:
+      - globals.set:
+          id: heater_timer_remaining  # 設定剩餘加熱時間
+          value: "3600"  # 設定為 3600 秒（1 小時）
+      - switch.turn_on: heater_switch  # 開啟加熱器
+      - logger.log: "Manual heating started. Heater will turn off after 1 hour."  # 記錄日誌
+
+  # 手動加熱停止的腳本
+  - id: manual_heating_stop
+    then:
+      - globals.set:
+          id: heater_timer_remaining  # 設定剩餘加熱時間
+          value: "0"  # 設定為 0 秒
+      - switch.turn_off: heater_switch  # 關閉加熱器
+      - text_sensor.template.publish:
+          id: heating_time_display  # 更新剩餘加熱時間顯示
+          state: "00:00"  # 顯示為 00:00
+      - logger.log: "Manual heating stopped."  # 記錄日誌
+
+# 定義定時執行的區塊，用於處理倒計時和溫度調整
+interval:
+  - interval: 10s  # 每 10 秒執行一次
     then:
       - lambda: |-
-          float current_temp = id(dht11_temperature).state;
-          float target_temp = id(target_temperature).state;
-          auto now = id(sntp_time).now();
-
-          // 定時模式：根據定時設定檢查當前時間是否在啟動範圍內並滿足溫度條件
-          if (id(timer_mode).state) {
-            if (now.is_valid()) {
-              int start_hour = (int)id(timer_start_hour).state;
-              int end_hour = (int)id(timer_end_hour).state;
-              bool in_timer_range = (now.hour >= start_hour && now.hour < end_hour);
-              if (in_timer_range && current_temp < target_temp) {
-                id(heater).turn_on();
-                ESP_LOGD("main", "Timer mode active: Heater ON, current temp: %f, target temp: %f", current_temp, target_temp);
-              } else {
-                id(heater).turn_off();
-                ESP_LOGD("main", "Timer mode inactive or target temperature reached: Heater OFF");
-              }
-            } else {
-              ESP_LOGW("main", "SNTP time is not valid, unable to perform timer-based heating control.");
+          // 處理手動加熱倒計時
+          if (id(heater_timer_remaining) > 0) {
+            id(heater_timer_remaining) -= 10;  // 減少 10 秒
+            if (id(heater_timer_remaining) <= 0) {
+              id(heater_timer_remaining) = 0;  // 確保不小於 0
+              id(manual_heater_switch).turn_off();  // 關閉手動加熱觸發開關
             }
           }
-    # 每 10 秒檢查一次當前溫度與目標溫度的情況，根據條件控制加熱器的啟動和關閉
 
-script:
-  # 手動加熱模式自動關閉的腳本
-  - id: manual_heater_timer
-    then:
-      - lambda: |-
-          id(heater_timer_remaining) = 3600;  // 設置倒計時為 1 小時（3600 秒）
-      - delay: 1h
-      - switch.turn_off: manual_heater_trigger
-    # 設置一個腳本，在手動加熱模式啟動 1 小時後自動關閉加熱器
+          // 檢查是否啟用了自動目標溫度調整
+          if (id(auto_target_temp_adjust).state) {
+            // 智慧調整目標溫度基於環境溫度
+            float env_temp = id(env_temperature).state;  // 讀取環境溫度
+            float new_target;  // 新的目標溫度
+            if (env_temp <= 10.0) {
+              // 非常寒冷，增加目標溫度
+              new_target = 55.0;
+            } else if (env_temp > 10.0 && env_temp <= 20.0) {
+              // 寒冷，稍微增加目標溫度
+              new_target = 50.0;
+            } else if (env_temp > 20.0 && env_temp <= 30.0) {
+              // 溫暖，保持中等目標溫度
+              new_target = 45.0;
+            } else {
+              // 熱，降低目標溫度以節能
+              new_target = 40.0;
+            }
+
+            // 只有當新的目標溫度與當前目標溫度不一致時，才更新目標溫度
+            if (id(target_temperature).state != new_target) {
+              id(target_temperature).publish_state(new_target);  // 發佈新的目標溫度
+              ESP_LOGD("main", "Auto Adjust: Target temperature set to %.1f °C based on environment temperature %.1f °C", new_target, env_temp);  // 記錄日誌
+            }
+          }
+
+          // 處理定時模式下的加熱邏輯，應用滯後
+          if (id(timer_mode_switch).state) {
+            auto now = id(sntp_time).now();  // 獲取當前時間
+            if (now.is_valid()) {  // 確認時間有效
+              int hour = now.hour;  // 取得當前小時
+              // 檢查當前時間是否在定時開始和結束時間之間
+              if (hour >= (int)id(timer_start_hour).state && hour < (int)id(timer_end_hour).state) {
+                float target = id(target_temperature).state;  // 目標溫度
+                float hysteresis = id(TEMPERATURE_HYSTERESIS);  // 滯後值
+                float current_temp = id(calibrated_temperature).state;  // 當前水溫
+                if (current_temp < (target - hysteresis)) {  // 如果當前水溫低於目標溫度減去滯後值
+                  id(heater_switch).turn_on();  // 開啟加熱器
+                } else if (current_temp > (target + hysteresis)) {  // 如果當前水溫高於目標溫度加上滯後值
+                  id(heater_switch).turn_off();  // 關閉加熱器
+                }
+              } else {
+                id(heater_switch).turn_off();  // 如果不在定時時間範圍內，關閉加熱器
+              }
+            }
+          }
+
+          // 處理手動加熱模式下的加熱邏輯，應用滯後
+          if (id(manual_heater_switch).state) {
+            float target = id(target_temperature).state;  // 目標溫度
+            float hysteresis = id(TEMPERATURE_HYSTERESIS);  // 滯後值
+            float current_temp = id(calibrated_temperature).state;  // 當前水溫
+            if (current_temp < (target - hysteresis)) {  // 如果當前水溫低於目標溫度減去滯後值
+              id(heater_switch).turn_on();  // 開啟加熱器
+            } else if (current_temp > (target + hysteresis)) {  // 如果當前水溫高於目標溫度加上滯後值
+              id(heater_switch).turn_off();  // 關閉加熱器
+            }
+          }
