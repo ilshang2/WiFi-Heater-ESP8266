@@ -13,22 +13,22 @@ logger:
 # 設定 ESPHome API 及加密金鑰
 api:
   encryption:
-    key: "7uoAmbYwHvWNQA3xCXsXaJWoQiAf3OJQb+6reWqCU8o="  # API 加密金鑰
+    key: "YOUR_API_ENCRYPTION_KEY"  # API 加密金鑰
 
 # 設定 OTA 更新及密碼
 ota:
   platform: esphome
-  password: "ef6e1fd2688b16bda2ac563f214e8f16"  # OTA 更新密碼
+  password: "YOUR_OTA_PASSWORD"  # OTA 更新密碼
 
 # 設定 Wi-Fi 連接資訊
 wifi:
-  ssid: "ShangHome"  # Wi-Fi 名稱
-  password: "61389038"  # Wi-Fi 密碼
+  ssid: "YOUR_WIFI_SSID"  # Wi-Fi 名稱
+  password: "YOUR_WIFI_PASSWORD"  # Wi-Fi 密碼
 
   # 設定 AP 模式的 SSID 和密碼，以防主要網絡無法連接
   ap:
     ssid: "HWater Fallback Hotspot"  # AP 模式的 SSID
-    password: "12345678"  # AP 模式的密碼
+    password: "YOUR_AP_PASSWORD"  # AP 模式的密碼
 
 # 設定內建的 Web Server
 web_server:
@@ -158,7 +158,7 @@ switch:
       - lambda: |-
           id(timer_mode_switch).publish_state(false);  // 發佈定時模式為禁用狀態
       - switch.turn_off: heater_switch  # 關閉加熱器
-      - logger.log: "Timer mode disabled, Water Heater turned off."  # 記錄日誌
+      - logger.log: "Timer mode disabled, Water Heater turned off."  // 記錄日誌
 
   # 手動加熱觸發開關，用於手動啟動或停止加熱
   - platform: template
@@ -176,7 +176,7 @@ switch:
       - globals.set:
           id: heater_timer_remaining  # 設定剩餘加熱時間為 0
           value: '0'
-      - logger.log: "Manual heater trigger turned off, Water Heater turned off, and Remaining Heating Time reset."  # 記錄日誌
+      - logger.log: "Manual heater trigger turned off, Water Heater turned off, and Remaining Heating Time reset."  // 記錄日誌
 
   # 自動目標溫度調整開關，用於啟用或禁用自動調整目標溫度
   - platform: template
