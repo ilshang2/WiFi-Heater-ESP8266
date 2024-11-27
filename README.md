@@ -1,129 +1,128 @@
-# WiFi-Heater-ESP8266
+```
+HWater 控制系統
 
-## 專案概述
-WiFi-Heater-ESP8266 是一個基於 ESP8266 WiFi 模組的智能熱水器控制系統，旨在通過物聯網技術提升熱水器的便捷性和能源效率。此專案允許用戶通過 WiFi 遠端控制水溫並監測熱水器的運行狀況，實現智能化家居體驗。
+專案描述
 
-## 系統架構
-此專案的系統架構主要由 ESP8266 WiFi 模組、熱水器控制電路及相關感應器組成。ESP8266 負責將熱水器連接至本地 WiFi 網絡，用戶可以透過手機或電腦發送指令以控制熱水器的開關、調整水溫等功能。
+HWater 控制系統是一個基於 ESP8266 的智慧水溫控制解決方案。透過 ESPHome 平台，該系統能夠自動調整目標水溫，根據環境溫度進行智慧化控制，同時提供手動控制和定時模式功能，確保水溫始終保持在理想範圍內。
 
-- **ESP8266 模組**：用於連接到 WiFi，處理所有網絡請求及控制指令。
-- **溫度感應器**：負責測量水溫，並將數據反饋給 ESP8266，以便進行控制。
-- **控制電路**：通過繼電器或其他開關裝置實現熱水器的開關控制。
-- **用戶界面**：用戶可以透過 Web 應用程式或專屬手機應用來控制熱水器並查看目前的水溫狀態。
+功能特點
 
-## 使用方法
-### 硬體設置
-1. **準備硬體**：
-   - 一台 ESP8266 開發板（如 NodeMCU）
-   - 溫度感應器（如 DS18B20）
-   - 繼電器模組，用於控制熱水器的電源開關
-   - 熱水器
-   - 固態繼電器（SSR）
-2. **連接 ESP8266**：
-   - **溫度感應器**：將 DS18B20 溫度感應器的數據線連接到 **GPIO4 (D2)**，電源線連接到 3.3V 和 GND。
-   - **固態繼電器 (SSR)**：將 SSR 的控制端連接到 **GPIO5 (D1)**，用來控制熱水器的電源。
+- 自動目標水溫調整：根據環境溫度自動調整目標水溫，節能又高效。
+- 手動控制：允許使用者手動啟動或停止加熱器，並設定加熱持續時間。
+- 定時模式：設定特定的啟動和停止時間，自動控制加熱器運行。
+- 即時監控：實時顯示當前水溫、環境溫度、濕度、加熱器狀態及剩餘加熱時間。
+- 遠端管理：透過內建的 Web Server，使用者可在網頁界面上進行配置和監控。
 
-### 軟體設置
-1. **開發環境**：
-   - 使用 Arduino IDE 或 PlatformIO 來編寫 ESP8266 的控制程式碼。
-   - 安裝 ESP8266 開發板擴展包，配置相關的驅動。
-2. **ESPHome 編譯與設置**：
-   - 可以通過 Home Assistant 的 ESPHome 插件進行編譯和安裝。只需在 Home Assistant 的附加組件商店中搜索並安裝 ESPHome，之後即可在本地網絡內輕鬆地添加和管理您的設備。
-   - 您也可以使用線上 Web 工具來安裝和設置 ESPHome，請訪問以下連結以便快速進行設置：[ESPHome Web 安裝工具](https://web.esphome.io/?dashboard_install)
-3. **程式碼上傳**：
-   - 編寫程式碼以處理 WiFi 連接、HTTP 請求，並實現控制邏輯。
-   - 以下是 `hwater.yaml` 的程式碼內容，供您參考：
+硬體需求
 
-```yaml
-esphome:
-  name: hwater
-  friendly_name: HWater
+- ESP8266 模組（如 ESP-01，1MB Flash）
+- DHT11 溫濕度感測器
+- 水溫感測器（連接至 ADC 引腳 A0）
+- 繼電器模組（控制加熱器，連接至 GPIO14）
+- 電源供應（根據 ESP8266 和繼電器模組的需求）
+- 連接線材和面包板（或其他電路板）
 
-esp8266:
-  board: esp01_1m
+軟體需求
 
-logger:
+- ESPHome（版本 2024.11.1）
+- Arduino IDE 或 PlatformIO（可選，用於進一步自訂）
+- GitHub 帳戶（選用，用於版本控制與分享）
 
-api:
-  encryption:
-    key: "7uoAmbYwHvWNQA3xCXsXaJWoQiAf3OJQb+6reWqCU8o="
+安裝指南
 
-ota:
-  platform: esphome
-  password: "ef6e1fd2688b16bda2ac563f214e8f16"
+1. 硬體連接
 
-wifi:
-  ssid: "<YOUR_WIFI_SSID>"
-  password: "<YOUR_WIFI_PASSWORD>"
-  ap:
-    ssid: "<FALLBACK_HOTSPOT_SSID>"
-    password: "<FALLBACK_HOTSPOT_PASSWORD>"
-  manual_ip:
-    static_ip: "<YOUR_STATIC_IP>"
-    gateway: "<YOUR_GATEWAY>"
-    subnet: "<YOUR_SUBNET>"
-    dns1: "<YOUR_DNS>"
+按照下表將各元件連接至 ESP8266：
 
-web_server:
-  port: 80
+| 元件                | ESP8266 引腳 |
+|---------------------|--------------|
+| DHT11 溫濕度感測器  | GPIO4        |
+| 水溫感測器（ADC）    | A0           |
+| 繼電器模組          | GPIO14       |
+| 電源供應            | VCC & GND    |
 
-globals:
-  - id: heater_timer_remaining
-    type: int
-    restore_value: False
-    initial_value: '0'
+2. 安裝 ESPHome
 
-switch:
-  - platform: gpio
-    pin: GPIO2
-    name: "Water Heater Switch"
-    id: heater
-    restore_mode: RESTORE_DEFAULT_OFF
-  - platform: template
-    name: "04_Enable Timer Mode"
-    id: timer_mode
-    optimistic: True
-    turn_on_action:
-      - lambda: |
-          ESP_LOGD("main", "Timer Mode set to: ON");
-          auto now = id(sntp_time).now();
-          if (now.is_valid()) {
-            int start_hour = 7;
-            int end_hour = 23;
-            float current_temp = id(dht11_temperature).state;
-            float target_temp = id(target_temperature).state;
-            bool in_timer_range = (now.hour >= start_hour && now.hour < end_hour);
-            if (in_timer_range && current_temp < target_temp) {
-              id(heater).turn_on();
-              ESP_LOGD("main", "Timer mode activated immediately: Heater ON, current temp: %f, target temp: %f", current_temp, target_temp);
-            }
-          }
-    turn_off_action:
-      - lambda: |
-          id(timer_mode).publish_state(false);
-          ESP_LOGD("main", "Timer Mode set to: OFF");
-          id(heater).turn_off();
+確保您已安裝 ESPHome。如果尚未安裝，可以參考 ESPHome 官方文檔進行安裝。
 
-# 更多程式碼...（省略部分內容）
+3. 配置 ESPHome
+
+將提供的 `hwater.yaml` 配置文件保存至 ESPHome 配置目錄下。
+
+4. 編譯並上傳
+
+使用 ESPHome Dashboard 或命令行工具編譯並上傳配置至 ESP8266。
+
+```bash
+esphome run hwater.yaml
 ```
 
-4. **WiFi 設定**：
-   - 配置 WiFi 名稱和密碼，將 ESP8266 連接到本地網絡。
+5. 設定 Wi-Fi
 
-### 操作系統
-1. **連接到熱水器控制面板**：
-   - 開啟手機或電腦上的瀏覽器，輸入 ESP8266 的 IP 地址。
-   - 進入控制介面，查看水溫、開啟或關閉熱水器，設定目標溫度。
-2. **遠端控制與自動化**：
-   - 可選擇設定每日排程，例如早上自動開啟熱水器並加熱到預設溫度。
+首次啟動時，ESP8266 會啟動 AP 模式。連接至 `HWater Fallback Hotspot` 並通過瀏覽器訪問 `192.168.4.1` 進行 Wi-Fi 設定。
 
-## 範例圖片與圖表
-下面是一些系統設置的範例圖片，幫助您了解如何進行硬體連接和軟體配置：
-![image](https://github.com/user-attachments/assets/4db3814d-b06a-4ab1-8606-4b7d558d3727)
+使用說明
 
-## 版本歷史
-- **v1.0**: 初始版本，實現 WiFi 連接與基本熱水器開關功能。
-- **v1.1**: 增加溫度感應與自動調節功能。
+1. Web 界面
 
-## 許可證
-此專案基於 MIT 許可證開源，您可以自由使用、修改和分發，但需要保留原作者的版權聲明。
+配置完成後，透過設備連接的 Wi-Fi 網絡，使用瀏覽器訪問 ESP8266 的 IP 地址（通常在路由器中查詢）即可進入 Web 界面，進行以下操作：
+
+- 查看狀態：檢視當前水溫、環境溫度、濕度、加熱器狀態及剩餘加熱時間。
+- 設定目標溫度：調整目標水溫，系統會自動根據環境溫度進行調整。
+- 手動控制：啟動或停止加熱器，並設定手動加熱持續時間。
+- 定時設定：設定加熱器的啟動和停止時間，系統將根據設定自動控制。
+
+2. 手動加熱
+
+啟動手動加熱觸發開關，系統將啟動加熱器並在設定的時間後自動關閉。
+
+3. 定時模式
+
+設定定時開始和結束時間，系統將在指定的時間段內自動啟動或停止加熱器。
+
+目錄結構
+
+```
+hwater/
+├── hwater.yaml          # ESPHome 配置文件
+├── www/                 # （已刪除）自定義的 Web 文件
+│   ├── index.html
+│   ├── styles.css
+│   └── script.js
+└── README.md            # 本文件
+```
+
+常見問題
+
+1. 編譯錯誤
+
+確保 `hwater.yaml` 配置文件中的註釋使用 `//` 而非 `#`，以符合 C++ 的語法規則。
+
+2. 感測器讀數不準確
+
+- 檢查感測器連接是否正確。
+- 確保感測器工作在合適的電壓範圍內。
+- 定期校準感測器以維持讀數準確性。
+
+3. 加熱器無法啟動
+
+- 確認繼電器模組與加熱器連接正確。
+- 檢查 GPIO14 是否正確配置並能夠控制繼電器。
+- 確認加熱器本身無故障。
+
+貢獻
+
+歡迎任何形式的貢獻！請提交問題報告或拉取請求，以改善此專案。
+
+授權
+
+本專案採用 MIT 授權。
+
+聯繫方式
+
+如有任何問題或建議，請在 GitHub Issues 中提出，或通過電子郵件聯繫我。
+
+---
+
+感謝您使用 HWater 控制系統！希望這個專案能夠幫助您實現智慧水溫管理。如果您覺得這個專案對您有幫助，請考慮在 GitHub 上給予 Star 支持。😊
+```
