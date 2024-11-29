@@ -1,7 +1,3 @@
-這裡是更新版的 README 文件，已根據您的需求進一步加強了技術細節，並增加了架構和接線的說明部分：
-
----
-
 # WiFi-Heater-ESP8266
 
 ## 專案概述
@@ -82,8 +78,8 @@ ESP8266 (NodeMCU v2) <--> 繼電器模組 <--> 熱水器
 - **定時模式**：啟用 `Enable Timer Mode` 並設定 `Timer Start Hour` 及 `Timer End Hour`，系統將在設定時間內自動運行。
 
 ## 圖示與介面
-![系統架構圖](assets/system_diagram.png)  <!-- 建議添加實際圖片 -->
-![Web 介面範例](assets/web_interface_example.png)
+![image](https://github.com/user-attachments/assets/3c0b0a3f-1359-400a-baf9-1c5412ee46ce)
+
 
 ## 注意事項
 - **安全用電**：請確保接線正確且安全，以避免因不當接線造成的短路或觸電。
@@ -106,7 +102,3 @@ A2：可以通過重燒錄新配置檔案來更改 WiFi SSID 和密碼。
 
 ## 聯絡
 如有任何問題或建議，請通過 GitHub 上的 Issues 與我聯繫。
-
----
-
-這個 README 文件包含了更加詳細的原理、架構、接線圖等信息，對於專案的開發與部署非常實用。如果你需要再進一步增強某部分的詳細度或補充其他細節，請告訴我！
