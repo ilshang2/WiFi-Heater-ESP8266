@@ -51,24 +51,19 @@ ESP8266 (NodeMCU v2) <--> 繼電器模組 <--> 熱水器
     - ESP8266 通過 USB 或外部 5V 電源供電。
 
 ## 安裝與配置
-1. **克隆專案**：
-   ```bash
-   git clone https://github.com/ilshang2/WiFi-Heater-ESP8266.git
-   cd WiFi-Heater-ESP8266
-   ```
 
-2. **配置檔案編輯**：
+1. **配置檔案編輯**：
    修改 `hwater.yaml` 配置檔案：
    - 設定 WiFi 名稱和密碼
    - 修改 OTA 密碼以確保安全性
 
-3. **燒錄至 ESP8266**：
+2. **燒錄至 ESP8266**：
    使用 ESPHome 燒錄配置到 ESP8266：
    ```bash
    esphome run hwater.yaml
    ```
 
-4. **部署與測試**：
+3. **部署與測試**：
    - 上電後 ESP8266 會嘗試連接 WiFi。
    - 成功後，可透過 `http://[ESP8266 IP 地址]:80` 訪問 Web 介面進行監控和操作。
 
