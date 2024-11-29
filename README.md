@@ -53,7 +53,7 @@ ESP8266 (NodeMCU v2) <--> 繼電器模組 <--> 熱水器
 ## 安裝與配置
 1. **克隆專案**：
    ```bash
-   git clone https://github.com/yourusername/WiFi-Heater-ESP8266.git
+   git clone https://github.com/ilshang2/WiFi-Heater-ESP8266.git
    cd WiFi-Heater-ESP8266
    ```
 
